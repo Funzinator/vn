@@ -7,3 +7,12 @@ install:
 script:
   - qmake
   - make
+
+compiler:
+  - gcc
+  - clang
+
+os:
+  - linux
+  - windows
+  - osx
