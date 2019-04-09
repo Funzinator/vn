@@ -6,6 +6,7 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update          ; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install qt      ; fi
   - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then choco install qtcreator      ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then choco install mingw      ; fi
 
 script:
   - qmake
