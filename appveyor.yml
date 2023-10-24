@@ -21,9 +21,9 @@ after_build:
         appveyor PushArtifact "emulator-${APPVEYOR_REPO_TAG_NAME}-macos-x86_64.dmg"
       fi
 
-on_finish:
-  - sh: export APPVEYOR_VNC_BLOCK=true
-  - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-vnc.sh' | bash -e -
+#on_finish:
+#  - sh: export APPVEYOR_VNC_BLOCK=true
+#  - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-vnc.sh' | bash -e -
 
 deploy:
   - release: $(APPVEYOR_REPO_TAG_NAME)
