@@ -4,8 +4,8 @@ install:
   - brew update
 #  - brew upgrade
   - HOMEBREW_NO_AUTO_UPDATE=1 brew install qt@6
-#  - export QTDIR=/usr/local/Cellar/qt/6.*
-#  - export PATH="${PATH}:${QTDIR}/bin"
+  - export QTDIR=/usr/local/Cellar/qt/6.*
+  - export PATH="${QTDIR}/bin:${PATH}"
 
 build_script:
   - qmake APP_VERSION="${APPVEYOR_REPO_TAG_NAME}"
