@@ -1,9 +1,11 @@
 image: macos-monterey
 
 install:
-#  - brew update
+  - brew update
 #  - brew upgrade
   - HOMEBREW_NO_AUTO_UPDATE=1 brew install qt@6
+#  - export QTDIR=/usr/local/Cellar/qt/6.*
+#  - export PATH="${PATH}:${QTDIR}/bin"
 
 build_script:
   - qmake APP_VERSION="${APPVEYOR_REPO_TAG_NAME}"
@@ -11,6 +13,7 @@ build_script:
   - macdeployqt von-neumann-emu.app -dmg
 
 after_build:
+  - appveyor PushArtifact "von-neumann-emu.dmg"
   - sh: |
       if [ "$APPVEYOR_REPO_TAG" = "true" ] ; then
         macdeployqt von-neumann-emu.app -dmg
