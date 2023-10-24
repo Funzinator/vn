@@ -1,9 +1,9 @@
 image: macos-monterey
 
 install:
-  - brew update
-  - brew upgrade
-  - brew install qt@6
+#  - brew update
+#  - brew upgrade
+  - HOMEBREW_NO_AUTO_UPDATE=1 brew install qt@6
 
 build_script:
   - qmake APP_VERSION="${APPVEYOR_REPO_TAG_NAME}"
