@@ -1,96 +1,24 @@
-image:
-  - Visual Studio 2019
-  - macos-monterey
-  - Ubuntu2004
-  - Ubuntu2204
+image: macos-monterey
 
-environment:
-  access_token:
-    secure: i6EjJctBS70th59Adk4m/aVlt8mOxvlyI5GIrHY3AkdHFX2MlIK1RvdK/lC6SqDB
+install:
+  - brew install qt@6
 
-for:
-  - matrix:
-      only:
-        - image: Visual Studio 2019
-    install:
-      - set QTDIR=C:\Qt\6.5\msvc2019_64
-      - set PATH=%PATH%;%QTDIR%\bin
-      - call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
-    build_script:
-      - qmake APP_VERSION=%%APPVEYOR_REPO_TAG_NAME%%
-      - nmake
-    # before_deploy can only be used on Windows, see https://github.com/appveyor/ci/issues/3597
-    before_deploy:
-      - mkdir emulator
-      - windeployqt release/von-neumann-emu.exe --release --dir emulator\
-      - copy release\von-neumann-emu.exe emulator\emulator.exe
-      - 7z a -r -tzip "emulator-%%APPVEYOR_REPO_TAG_NAME%%-windows-x86_64.zip" emulator\
-      - appveyor PushArtifact "emulator-%%APPVEYOR_REPO_TAG_NAME%%-windows-x86_64.zip"
+build_script:
+  - qmake APP_VERSION="${APPVEYOR_REPO_TAG_NAME}"
+  - make -j $(nproc)
+  - macdeployqt von-neumann-emu.app -dmg
 
-  - matrix:
-      only:
-        - image: macos-monterey
-    install:
-      - export QTDIR=$HOME/Qt/6.4/macos
-      - export PATH="${PATH}:${QTDIR}/bin"
-    build_script:
-      # "qmake QMAKE_APPLE_DEVICE_ARCHS=arm64 -qtdir <QtDir with ARM64>" will enable M1/M2 builds once provided by AppVeyor
-      - qmake APP_VERSION="${APPVEYOR_REPO_TAG_NAME}"
-      - make -j $(nproc)
-    after_build:
-      - sh: |
-          if [ "$APPVEYOR_REPO_TAG" = "true" ] ; then
-            macdeployqt von-neumann-emu.app -dmg
-            mv von-neumann-emu.dmg "emulator-${APPVEYOR_REPO_TAG_NAME}-macos-x86_64.dmg"
-            appveyor PushArtifact "emulator-${APPVEYOR_REPO_TAG_NAME}-macos-x86_64.dmg"
-          fi
+after_build:
+  - sh: |
+      if [ "$APPVEYOR_REPO_TAG" = "true" ] ; then
+        macdeployqt von-neumann-emu.app -dmg
+        mv von-neumann-emu.dmg "emulator-${APPVEYOR_REPO_TAG_NAME}-macos-x86_64.dmg"
+        appveyor PushArtifact "emulator-${APPVEYOR_REPO_TAG_NAME}-macos-x86_64.dmg"
+      fi
 
-  - matrix:
-      only:
-        - image: Ubuntu2004
-    install:
-      - export QTDIR=$HOME/Qt/6.4/gcc_64
-      - export PATH="${PATH}:${QTDIR}/bin"
-    build_script:
-      - qmake APP_VERSION="${APPVEYOR_REPO_TAG_NAME}"
-      - make -j $(nproc)
-    after_build:
-      - sh: |
-          if [ "$APPVEYOR_REPO_TAG" = "true" ] ; then
-            wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-            wget https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
-            chmod +x linuxdeploy*.AppImage
-            cp res/famfamfam/control_play_blue.png von-neumann-emu.png
-            ./linuxdeploy-x86_64.AppImage -e von-neumann-emu -i von-neumann-emu.png --appdir AppDir --create-desktop-file --plugin qt --output appimage
-            mv von-neumann-emu-x86_64.AppImage "emulator-${APPVEYOR_REPO_TAG_NAME}-linux-x86_64.AppImage"
-            appveyor PushArtifact "emulator-${APPVEYOR_REPO_TAG_NAME}-linux-x86_64.AppImage"
-          fi
-
-  - matrix:
-      only:
-        - image: Ubuntu2204
-    install:
-      - docker pull ghcr.io/funzinator/qt6-wasm:6.6
-    build_script:
-      - docker run --rm -v "$HOME/projects/$APPVEYOR_PROJECT_NAME:/home/user/project:rw" -w /home/user/project -e APP_VERSION="${APPVEYOR_REPO_TAG_NAME}" ghcr.io/funzinator/qt6-wasm:6.6 sh -c 'qmake APP_VERSION="${APP_VERSION}" && make -j $(nproc)'
-    after_build:
-      - ps: Set-Content -Path "$HOME\.git-credentials" -Value "https://$($env:access_token):x-oauth-basic@github.com`n" -NoNewline
-      - sh: |
-          if [ "$APPVEYOR_REPO_TAG" = "true" ] ; then
-            mv von-neumann-emu.html index.html
-            tar cvzf "emulator-${APPVEYOR_REPO_TAG_NAME}-wasm.tar.gz" index.html qtloader.js qtlogo.svg von-neumann-emu.js von-neumann-emu.wasm
-            appveyor PushArtifact "emulator-${APPVEYOR_REPO_TAG_NAME}-wasm.tar.gz"
-            git config --global credential.helper store
-            git config --global user.email "github@funzi.de"
-            git config --global user.name "Funzinator"
-            git clone --branch wasm "https://github.com/funzinator/${APPVEYOR_PROJECT_NAME}.git" $HOME/projects/wasm
-            cd $HOME/projects/wasm
-            rm *
-            tar xvzf "$HOME/projects/${APPVEYOR_PROJECT_NAME}/emulator-${APPVEYOR_REPO_TAG_NAME}-wasm.tar.gz"
-            git add .
-            git commit -m "$(echo ${APPVEYOR_REPO_TAG_NAME} | sed -e 's/v/Version /g')"
-            git push
-          fi
+#on_finish:
+#  - sh: export APPVEYOR_VNC_BLOCK=true
+#  - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-vnc.sh' | bash -e -
 
 deploy:
   - release: $(APPVEYOR_REPO_TAG_NAME)
@@ -98,7 +26,7 @@ deploy:
     provider: GitHub
     auth_token:
       secure: PL44es3rGKnzlt+xc0ZcUSqy/81+fxqB+LAgbKUc2pULxR8cV5zKLvcvbvxGp36u
-    artifact: /emulator-.*\.(zip|dmg|AppImage|tar\.gz)/
+    artifact: /emulator-.*\.dmg/
     draft: false
     prerelease: false
     tag: $(APPVEYOR_REPO_TAG_NAME)
